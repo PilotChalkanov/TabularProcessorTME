@@ -61,7 +61,7 @@ namespace processAAS
                     throw new InvalidOperationException($"{nameof(srsProcessor)} cannot be null");
                 }
 
-                return srsProcessor.Process(aasConnectionString, sqlConnectionString, log, cube);
+                return srsProcessor.MergeTables(aasConnectionString, sqlConnectionString, log, cube);
 
             }
             else if (cube.TabularModelName == "DataQuality_UIO")

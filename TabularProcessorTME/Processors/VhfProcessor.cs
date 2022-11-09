@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 
 namespace TabularProcessorTME.Processors
 {
-    public class VhfProcessor
+    public class VhfProcessor : IProcessor
     {
         public IActionResult ProcessDimTables(string tempConnectionString, string sqlConnectionString, ILogger log, CubeModel data)
         {
@@ -102,6 +103,46 @@ namespace TabularProcessorTME.Processors
 
 
             }
+        }
+        public IActionResult CreatePartitions(string tempConnectionString, string sqlConnectionString, ILogger log, CubeModel data)
+        {
+
+           
+
+            return new OkResult();
+        }
+        private List<string> ReadConfigDetails(string query, string sqlConnectionString, string columnName)
+        {
+            SqlConnection cnn;
+            cnn = new SqlConnection(sqlConnectionString);
+            SqlDataReader dataReader;
+            // Query - DQ.Partitionconfigurator to get the last max msgID            
+            string result = "";
+            cnn.Open();
+            SqlCommand command = new SqlCommand(query, cnn);
+            dataReader = command.ExecuteReader();            
+            List<string> newPartitionNames = new List<string>();
+            while (dataReader.Read())
+            {
+                newPartitionNames.Add(Convert.ToString(dataReader[columnName]));
+            }                      
+            cnn.Close();
+            return newPartitionNames;
+        }
+
+        public IActionResult MergeTables(string connectionString, string sqlConnectionString, ILogger log, CubeModel data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IActionResult ProcessPartition(string connectionString, string sqlConnectionString, ILogger log, CubeModel data)
+        {
+            throw new NotImplementedException();
+        }       
+
+        public string WriteConfigDetails(string query, string sqlConnectionString, string columnName)
+        {
+            throw new NotImplementedException();
         }
     }
 }
