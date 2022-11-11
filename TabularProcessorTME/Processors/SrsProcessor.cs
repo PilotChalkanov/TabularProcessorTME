@@ -9,150 +9,54 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using TabularProcessorTME.Helpers;
-using TabularProcessorTME.Processors;
+using TabularProcessorTME.Processors.Contracts;
+using TabularProcessorTME.Models;
 
 namespace processAAS
 {
-    public class SrsProcessor : IProcessor
+    public class SrsProcessor : Processor
     {
-        public IActionResult ProcessDimTables(string tempConnectionString, string sqlConnectionString, ILogger log, CubeModel data)
+
+        public SrsProcessor(SqlConnection sqlCnn, AnalysisServer aasCnn, ILogger log) : base(sqlCnn, aasCnn, log)
         {
-            if (string.IsNullOrWhiteSpace(tempConnectionString))
-            {
-                throw new ArgumentException($"'{nameof(tempConnectionString)}' cannot be null or whitespace.", nameof(tempConnectionString));
-            }
 
-            if (string.IsNullOrWhiteSpace(sqlConnectionString))
-            {
-                throw new ArgumentException($"'{nameof(sqlConnectionString)}' cannot be null or whitespace.", nameof(sqlConnectionString));
-            }
-
-            if (log is null)
-            {
-                throw new ArgumentNullException(nameof(log));
-            }
-
-            if (data is null)
-            {
-                throw new ArgumentNullException(nameof(data));
-            }
-            using (Server server = new Server())
-            {
-                server.Connect(tempConnectionString);
-                log.LogInformation("Connection established successfully.\n");
-                log.LogInformation("Server name:\t\t{0}", server.Name);
-
-                try
-                {
-                    Database tabularModel = server.Databases.FindByName(data.TabularModelName.ToString());
-                    string[] dimTables = data.DimTables;
-                    string proccessPolicy = data.ProcessType;
-
-                    if (tabularModel != null)
-                    {
-                        TableCollection modelTables = tabularModel.Model.Tables;
-                        Partition partitionToProcess = tabularModel.Model.Tables.Find("VHF").Partitions.Find(data.Partition);
-
-                        if (dimTables.Any())
-                        {
-                            List<Table> dimTablesToProcess = modelTables.ToList().Where(t => dimTables.Contains(t.Name)).ToList();
-                            if (dimTablesToProcess.Any())
-                            {
-                                dimTablesToProcess.ForEach(t => t.RequestRefresh(RefreshType.ClearValues));
-                                tabularModel.Model.SaveChanges();
-                                dimTablesToProcess.ForEach(t => log.LogInformation($"{t.Name} -- state -- " +
-                                    $"{t.Partitions.First().State} -- modTime -- {t.Partitions.First().ModifiedTime}"));
-                                dimTablesToProcess.ForEach(t => t.RequestRefresh(RefreshType.Full));
-                                tabularModel.Model.SaveChanges();
-                                dimTablesToProcess.ForEach(t => log.LogInformation($"{t.Name} -- state -- " +
-                                    $"{t.Partitions.First().State} -- modTime -- {t.Partitions.First().ModifiedTime}"));
-
-                            }
-                            else
-                            {
-                                log.LogError("Dimension Tables are not found in the server or the input is not correct!");
-                                return new ObjectResult("Dimension Tables are not found in the server or the input is not correct!")
-                                {
-                                    StatusCode = (int?)System.Net.HttpStatusCode.NotFound
-                                };
-                            }
-                        }
-                        if (partitionToProcess != null)
-                        {
-                            partitionToProcess.RequestRefresh(RefreshType.ClearValues);
-                            partitionToProcess.RequestRefresh(RefreshType.Full);
-                        }
-                    }
-                    else
-                    {
-                        log.LogInformation("TabularModel not found!");
-                        return new ObjectResult("TabularModel not found!")
-                        {
-                            StatusCode = (int?)System.Net.HttpStatusCode.NotFound
-                        };
-                    }
-                    return new OkResult();
-
-                }
-                catch
-                {
-                    log.LogError("Invalid Request!");
-                    return new ObjectResult("Invalid Request!")
-                    {
-                        StatusCode = (int?)System.Net.HttpStatusCode.BadRequest
-                    };
-                }
-
-
-
-            }
         }
-        public IActionResult MergeTables(string aasConnectionString, string sqlConnectionString, ILogger log, CubeModel cube)
+        public override IActionResult MergeTables(CubeModel cube)
 
         {
-            if (string.IsNullOrWhiteSpace(aasConnectionString))
-            {
-                throw new ArgumentException($"'{nameof(aasConnectionString)}' cannot be null or whitespace.", nameof(aasConnectionString));
-            }
-
-            if (string.IsNullOrWhiteSpace(sqlConnectionString))
-            {
-                throw new ArgumentException($"'{nameof(sqlConnectionString)}' cannot be null or whitespace.", nameof(sqlConnectionString));
-            }
-
-            if (log is null)
-            {
-                throw new ArgumentNullException(nameof(log));
-            }
 
             if (cube is null)
             {
                 throw new ArgumentNullException(nameof(cube));
             }
 
-            
+
             // Query - DQ.Partitionconfigurator to get the last max msgID
             string lastMaxMsgIdQuery = StaticTextData.lastMaxMsgId;
-            string msgId = ReadConfigDetails(lastMaxMsgIdQuery,sqlConnectionString, "currentMaxKey");            
+            string msgId = ReadConfigDetails(lastMaxMsgIdQuery,  "currentMaxKey");
 
             // Query - DQ.Partitionconfigurator to get the current max msgID
             string currentMaxMsgId = StaticTextData.srsMaxMsgID;
-            string maxMsgId = ReadConfigDetails(currentMaxMsgId, sqlConnectionString, "msgID");           
+            string maxMsgId = ReadConfigDetails(currentMaxMsgId, "msgID");
 
             //Query DQ.PartitionConfigurator to get the mQuery template
-            string templateQuery = StaticTextData.TemplateQuery;
-            string mQueryExpr = ReadConfigDetails(templateQuery, sqlConnectionString, "TemplateSourceQuery");
+            string templateQuery = StaticTextData.srsTemplateQuery.Replace("{0}", "SRS");
+            string mQueryExpr = ReadConfigDetails(templateQuery, "TemplateSourceQuery");
 
-            Server server = new Server();
-            server.Connect(aasConnectionString);
+            aasCnn.ConnectAAS();            
             log.LogInformation("Connection established successfully.\n");
-            log.LogInformation("Server name:\t\t{0}", server.Name);
+            log.LogInformation("Server name:\t\t{0}", aasCnn.Name);
 
-            Database tabularModel = server.Databases.FindByName(cube.TabularModelName.ToString());
+            Database tabularModel = aasCnn.Databases.FindByName(cube.TabularModelName.ToString());
+            if(tabularModel == null)
+            {
+                log.LogInformation("SRS Tabular model doesn't exist or it is not initialized properly!");
+                throw new ArgumentNullException("SRS Tabular model doesn't exist or it is not initialized properly!");
+            }
             Table partitionedSRS = tabularModel.Model.Tables.Find("SRS");
             if (partitionedSRS == null)
             {
-                throw new ArgumentNullException("Srs table name input error!");
+                throw new ArgumentNullException("Srs table name doesn't exist or the input is not correct!");
             }
             /// <summary>
             /// Create new cold partition - daily.
@@ -162,7 +66,7 @@ namespace processAAS
             partitionsToMerge.Remove(mergeSourcePartition);
             string name = "20220317" + "_" + DateTime.Now.ToString("yyyyMMdd");
             MPartitionSource coldPartitionSourceQuery = new MPartitionSource();
-            coldPartitionSourceQuery.Expression = PartitionManager.MQueryBuilder(mQueryExpr, "0", msgId);
+            coldPartitionSourceQuery.Expression = PartitionManager.BuildMQuery(mQueryExpr, "0", msgId);
             PartitionManager.Merge(tabularModel, partitionedSRS, partitionsToMerge, mergeSourcePartition, name, coldPartitionSourceQuery);
 
             /// <summary>
@@ -172,20 +76,20 @@ namespace processAAS
             string partName = DateTime.Now.ToString("yyyyMMdd");
             hotPartition.Name = partName;
             MPartitionSource newSource = new MPartitionSource();
-            newSource.Expression = PartitionManager.MQueryBuilder(mQueryExpr, msgId, maxMsgId);
+            newSource.Expression = PartitionManager.BuildMQuery(mQueryExpr, msgId, maxMsgId);
             hotPartition.Source = newSource;
             partitionedSRS.Partitions.Add(hotPartition);
             hotPartition.RequestRefresh(RefreshType.Full);
             tabularModel.Model.SaveChanges();
-            server.Disconnect();
+            aasCnn.Disconnect();
 
             //update maxID in PartitionConfig Table
             string updateQuery = StaticTextData.updateMaxId;
-            WriteConfigDetails(updateQuery, sqlConnectionString, maxMsgId, log);
+            WriteConfigDetails(updateQuery, maxMsgId, log);
 
             return new ObjectResult($"Created merged partitions:\ncold - {mergeSourcePartition.Name} - msgI > 0 and msgId <= {msgId}" +
-                $"                     \nhot - {hotPartition.Name} - msgId > {msgId} and msgId < {maxMsgId}");                
-           
+                $"                     \nhot - {hotPartition.Name} - msgId > {msgId} and msgId < {maxMsgId}");
+
         }
 
         public IActionResult CreatePartitions()
@@ -194,41 +98,39 @@ namespace processAAS
         }
 
         //read config params from config tables
-        string ReadConfigDetails(string query, string sqlConnectionString, string columnName)
+        string ReadConfigDetails(string query, string columnName)
         {
-            SqlConnection cnn;
-            cnn = new SqlConnection(sqlConnectionString);
+            
+            
             SqlDataReader dataReader;
             // Query - DQ.Partitionconfigurator to get the last max msgID            
             string result = "";
-            cnn.Open();
-            SqlCommand command = new SqlCommand(query, cnn);
+            sqlCnn.Open();
+            SqlCommand command = new SqlCommand(query, sqlCnn);
             dataReader = command.ExecuteReader();
             while (dataReader.Read())
             {
-                string queryResult = Convert.ToString(dataReader[columnName]);                
+                string queryResult = Convert.ToString(dataReader[columnName]);
                 result += queryResult;
             }
-            cnn.Close();
+            sqlCnn.Close();
             return result;
         }
 
-        public IActionResult CreatePartitions(string connectionString, string sqlConnectionString, ILogger log, CubeModel data)
+        public override IActionResult CreatePartitions(CubeModel data)
         {
             throw new NotImplementedException();
         }
 
-        public IActionResult ProcessPartition(string connectionString, string sqlConnectionString, ILogger log, CubeModel data)
+        public override IActionResult ProcessPartition(CubeModel data)
         {
             throw new NotImplementedException();
         }
 
-        private void WriteConfigDetails(string query, string sqlConnectionString, string maxId, ILogger log)
-        {
-            SqlConnection cnn;
-            cnn = new SqlConnection(sqlConnectionString);                    
-            cnn.Open();
-            SqlCommand command = new SqlCommand(query, cnn);
+        private void WriteConfigDetails(string query, string maxId, ILogger log)
+        {           
+            sqlCnn.Open();
+            SqlCommand command = new SqlCommand(query, sqlCnn);
             command.Parameters.AddWithValue("@value", maxId);
             int result = command.ExecuteNonQuery();
 
@@ -238,12 +140,11 @@ namespace processAAS
                 log.LogInformation("Error inserting data into Database!");
                 throw new Exception("Error inserting data into Database!");
             }
-            cnn.Close();
-        
-        
-        }
+            sqlCnn.Close();
 
-        
+
+        }
+   
     }
 }
 

@@ -7,20 +7,38 @@ using System.Text;
 
 namespace TabularProcessorTME.Helpers
 {
-    public class PartitionManager
+    /// <summary>
+    /// 
+    /// </summary>
+    public static class PartitionManager
     {
+        /// <summary>
+        /// Merge ..
+        /// </summary>
+        /// <param name="cubeTabular"></param>
+        /// <param name="aasTable"></param>
+        /// <param name="partitionsToMerge"></param>
+        /// <param name="sourcePartition"></param>
+        /// <param name="partitionName"></param>
+        /// <param name="mPartitionQuery"></param>
         public static void Merge(Database cubeTabular, Table aasTable, List<Partition> partitionsToMerge, Partition sourcePartition,
                                         string partitionName, MPartitionSource mPartitionQuery)
         {
-
             sourcePartition.RequestMerge(partitionsToMerge);
             cubeTabular.Model.SaveChanges();
             sourcePartition.Name = partitionName;
             sourcePartition.Source = mPartitionQuery;
             cubeTabular.Model.SaveChanges();
-            
         }
-        public static string MQueryBuilder(string mQueryExpr, string lowerLimitValue, string upperLimitValue)
+
+        /// <summary>
+        /// Builds the MQuery expresion
+        /// </summary>
+        /// <param name="mQueryExpr"></param>
+        /// <param name="lowerLimitValue"></param>
+        /// <param name="upperLimitValue"></param>
+        /// <returns></returns>
+        public static string BuildMQuery(string mQueryExpr, string lowerLimitValue, string upperLimitValue)
 
         {
             if (string.IsNullOrWhiteSpace(mQueryExpr))
@@ -41,8 +59,5 @@ namespace TabularProcessorTME.Helpers
                                                  .Replace("{1}", upperLimitValue);
             return newQuery;
         }
-    
-
-
     }
 }
