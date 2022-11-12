@@ -11,11 +11,14 @@ using TabularProcessorTME.Models;
 
 namespace TabularProcessorTME.Processors.Contracts
 {
+    /// <summary>
+    /// The main abstract Processor class with the common methods for all db instances
+    /// </summary>
     public abstract class Processor
     {
         private SqlConnection _sqlCnn;
         private AnalysisServer _aasCnn;
-        
+
         public SqlConnection sqlCnn
         {
             get { return _sqlCnn; }
@@ -51,9 +54,12 @@ namespace TabularProcessorTME.Processors.Contracts
             this.aasCnn = aasCnn;
             this.log = _log;
         }
-
-      
-        public  IActionResult ProcessDimTables(CubeModel data)
+        /// <summary>
+        /// Processes all the dimension tables in a tabular db
+        /// </summary>
+        /// <param name="cube"> CubeModel created from the req body. </param>
+        /// <returns></returns>        
+        public IActionResult ProcessDimTables(CubeModel cube)
         {
             aasCnn.ConnectAAS();
             log.LogInformation("Connection established successfully.\n");
@@ -61,13 +67,13 @@ namespace TabularProcessorTME.Processors.Contracts
 
             try
             {
-                Database tabularModel = aasCnn.Databases.FindByName(data.TabularModelName.ToString());
-                string[] dimTables = data.DimTables;
+                Database tabularModel = aasCnn.Databases.FindByName(cube.TabularModelName.ToString());
+                string[] dimTables = cube.DimTables;
 
                 if (tabularModel != null)
                 {
                     TableCollection modelTables = tabularModel.Model.Tables;
-                    Partition partitionToProcess = tabularModel.Model.Tables.Find(data.TableName).Partitions.Find(data.Partition);
+                    Partition partitionToProcess = tabularModel.Model.Tables.Find(cube.TableName).Partitions.Find(cube.Partition);
 
                     if (dimTables.Any())
                     {
@@ -82,7 +88,7 @@ namespace TabularProcessorTME.Processors.Contracts
                             tabularModel.Model.SaveChanges();
                             aasCnn.Disconnect();
                             aasCnn.Dispose();
-                           
+
                             dimTablesToProcess.ForEach(t => log.LogInformation($"{t.Name} -- state -- " +
                                 $"{t.Partitions.First().State} -- modTime -- {t.Partitions.First().ModifiedTime}"));
 
@@ -124,13 +130,57 @@ namespace TabularProcessorTME.Processors.Contracts
 
 
         }
-    
 
-        public abstract IActionResult MergeTables(CubeModel data);
+        /// <summary>
+        /// Processes single partition in the tabular db
+        /// </summary>
+        /// <param name="cube"> CubeModel created from the req body.</param>
+        /// <returns></returns>
+        public IActionResult ProcessPartition(CubeModel cube)
+        {
+            aasCnn.ConnectAAS();
+            Database vhfTabularModel = aasCnn.Databases.Find(cube.TabularModelName);
+            Table partitionedTable = vhfTabularModel.Model.Tables.Find(cube.TableName);
+            Partition partitionToProcess = partitionedTable.Partitions.Find(cube.Partition);
+            if (partitionToProcess == null)
+            {
+                log.LogInformation($"Partition - {cube.Partition} was not found. Check if the partition name is correct.");
+                return new ObjectResult($"Partition - {cube.Partition} was not found. Check if the partition name is correct.")
+                {
+                    StatusCode = (int?)System.Net.HttpStatusCode.BadRequest
+                };
 
-        public abstract IActionResult CreatePartitions(CubeModel data);
+                throw new ArgumentNullException($"Partition - {cube.Partition} was not found. Check if the partition name is correct.");
+            }
 
-        public abstract IActionResult ProcessPartition(CubeModel data);
+            partitionToProcess.RequestRefresh(RefreshType.ClearValues);
+            vhfTabularModel.Model.SaveChanges();
+            log.LogInformation($"Table: {partitionedTable}, Partition: {partitionToProcess.Name} -- " +
+                $"state -- {partitionToProcess.State} -- modTime -- {partitionToProcess.ModifiedTime}");
+
+            partitionToProcess.RequestRefresh(RefreshType.Full);
+            vhfTabularModel.Model.SaveChanges();
+            log.LogInformation($"Table: {partitionedTable}, Partition: {partitionToProcess.Name} -- " +
+                $"state -- {partitionToProcess.State} -- modTime -- {partitionToProcess.ModifiedTime}");
+            aasCnn.Disconnect();
+
+            return new ObjectResult($"Succesfully processed partition - {partitionedTable.Name}: {partitionToProcess.Name}.")
+            {
+                StatusCode = (int?)System.Net.HttpStatusCode.OK
+            };
+        }
+
+        /// <summary>
+        /// To be implemented by all the processors of the specific tabular db
+        /// Merges the tables based on the business requirments of the data
+        /// </summary>
+        /// <param name="cube">CubeModel as per req body from the api call</param>
+        /// <returns></returns>
+        public abstract IActionResult MergeTables(CubeModel cube);
+        
+        public abstract IActionResult CreateAllPartitions(CubeModel cube);
+
+
 
 
     }

@@ -41,13 +41,11 @@ namespace processAAS
             SqlDBConnectionModel connectionInfo = new SqlDBConnectionModel(StaticTextData.sqlServerURL, StaticTextData.sqlDb, StaticTextData.sqlDbUserName, StaticTextData.sqlDbPassword);
             bool integratedAuth = false;
             // Sql connection stgring
-
             SqlConnection sqlConnection = DbConnectionConfig.GetSqlConnectionString(connectionInfo, integratedAuth);
 
             //Set SSAS DB connection string
             AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, StaticTextData.aasUserID, StaticTextData.aasPassword, StaticTextData.aasImpersonation);
             AnalysisServer aasConnection = DbConnectionConfig.GetAasConnectionString(aasConnectionInfo);
-
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             CubeModel cube = JsonConvert.DeserializeObject<CubeModel>(requestBody);
@@ -132,8 +130,56 @@ namespace processAAS
             }            
 
        }
+        [FunctionName("VhfPartitionCreator")]
+        public static async Task<IActionResult> CreateVhfPartitions(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "vhf/partitions/create")] HttpRequest req,
+            ILogger log)
+        {
+            //Set Sql DB connection string
+            SqlDBConnectionModel connectionInfo = new SqlDBConnectionModel(StaticTextData.sqlServerURL, StaticTextData.sqlDb, StaticTextData.sqlDbUserName, StaticTextData.sqlDbPassword);
+            bool integratedAuth = false;
+            // Sql connection stgring
+            SqlConnection sqlConnection = DbConnectionConfig.GetSqlConnectionString(connectionInfo, integratedAuth);
 
-                
+            //Set SSAS DB connection string
+            AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, StaticTextData.aasUserID, StaticTextData.aasPassword, StaticTextData.aasImpersonation);
+            AnalysisServer aasConnection = DbConnectionConfig.GetAasConnectionString(aasConnectionInfo);
+
+
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            CubeModel cube = JsonConvert.DeserializeObject<CubeModel>(requestBody);
+
+
+
+            if (ValidateTabularModel.Validate(aasConnection, cube, log))
+            {
+                VhfProcessor vhfProcessor = new VhfProcessor(sqlConnection, aasConnection, log);
+                if (vhfProcessor == null)
+                {
+                    throw new InvalidOperationException($"{nameof(vhfProcessor)} cannot be null");
+                }
+
+                if (cube.TableName == null)
+                {
+                    throw new ArgumentNullException("Table to be partitioned cannot be null!");
+                }
+                return vhfProcessor.CreateAllPartitions(cube);
+
+            }
+            else
+            {
+                log.LogInformation("Not a valid AAS model! Please check the inputs!");
+                return new ObjectResult("Not a valid AAS model! Please check the inputs!")
+                {
+                    StatusCode = (int?)System.Net.HttpStatusCode.BadRequest
+                };
+                throw new ArgumentException("Not a valid AAS model! Please check the inputs!");
+
+            }
+
+        }
+
+
         [FunctionName("SRSOrchestrator")]
         public static async Task<IActionResult> ProcesSRS(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "srs/dimensions")] HttpRequest req,
@@ -148,10 +194,8 @@ namespace processAAS
             SqlConnection sqlConnection = DbConnectionConfig.GetSqlConnectionString(connectionInfo, integratedAuth);
 
             //Set SSAS DB connection string
-            AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, StaticTextData.aasUserID, StaticTextData.aasPassword, StaticTextData.aasImpersonation);
-           
+            AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, StaticTextData.aasUserID, StaticTextData.aasPassword, StaticTextData.aasImpersonation);           
             AnalysisServer aasConnection = DbConnectionConfig.GetAasConnectionString(aasConnectionInfo);
-
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             CubeModel cube = JsonConvert.DeserializeObject<CubeModel>(requestBody);

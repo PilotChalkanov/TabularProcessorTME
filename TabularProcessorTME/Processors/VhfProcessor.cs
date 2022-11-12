@@ -11,96 +11,117 @@ using System.Text;
 using TabularProcessorTME.Processors.Contracts;
 using Microsoft.Extensions.Logging;
 using TabularProcessorTME.Models;
+using TabularProcessorTME.Helpers;
 
 namespace TabularProcessorTME.Processors
 {
-    public class VhfProcessor : Processor
+    public class VhfProcessor : Processor   
     {
-        
+        /// <summary>
+        /// Handle all the processing, merging and partitioning of VHF Tabular DB. Extends Abstract Class Processor  
+        /// </summary>
+        /// <param name="sqlCnn"></param>
+        /// <param name="aasCnn"></param>
+        /// <param name="log"></param>
 
-        public VhfProcessor(SqlConnection sqlCnn, AnalysisServer aasCnn, ILogger log) : base(sqlCnn, aasCnn,log)
+        public VhfProcessor(SqlConnection sqlCnn, AnalysisServer aasCnn, ILogger log) : base(sqlCnn, aasCnn, log)
         {
-            
+
         }
-        
 
         /// <summary>
-        /// Vhf Processing of Dimension Tables 
+        /// Deletes and recreates all the partitions in the required table
         /// </summary>
-        /// <param name="tempConnectionString"></param>
-        /// <param name="sqlConnectionString"></param>
-        /// <param name="log"></param>
-        /// <param name="data"></param>
+        /// <param name="cube">CubeModel as per req body from the api call</param>
         /// <returns></returns>
-       
-
-        public override IActionResult CreatePartitions(CubeModel data)
+        public override IActionResult CreateAllPartitions(CubeModel cube)
         {
+            
             string getPartitionInfo = StaticTextData.vhfPartitionsInfo;
-            string getTemplateMQuery = StaticTextData.vhfTemplateQuery.Replace("{0}", "VHF");
+            string getTemplateMQuery = StaticTextData.vhfTemplateQuery.Replace("{0}", "'VHF'");
             List<Partition> partitionsToCreate = new List<Partition>();
             SqlDataReader dataReader;
             sqlCnn.Open();
-            SqlCommand command = new SqlCommand(getPartitionInfo, sqlCnn);
-            dataReader = command.ExecuteReader();
+            SqlCommand commandMQuery = new SqlCommand(getTemplateMQuery, sqlCnn);
+            dataReader = commandMQuery.ExecuteReader();
+            string mQuery = null;
             while (dataReader.Read())
             {
-                Partition partition = new Partition();
-                partition.Name = dataReader[0].ToString();
+                mQuery = dataReader[0].ToString(); 
+            }
+            if (mQuery == null)
+            {
+                throw new ArgumentNullException("MQuery cannot be null!");
+            }
+            SqlCommand commandPartitionInfo =  new SqlCommand(getPartitionInfo, sqlCnn);
+            dataReader.Close();
 
-                log.LogInformation(dataReader[0].ToString());
-                partitionsToCreate.Add(partition);
+            //add suffix "_delete" to old partitions
+            aasCnn.ConnectAAS();
+            Database vhfTabularModel = aasCnn.Databases.FindByName(cube.TabularModelName);
+            Table vhfTable = vhfTabularModel.Model.Tables.Find(cube.TableName);
+            PartitionCollection partitionsToDelete = vhfTable.Partitions;
+            partitionsToDelete.ToList().ForEach(p => p.Name = p.Name + "_delete");
+            vhfTabularModel.Model.SaveChanges();
+
+            dataReader = commandPartitionInfo.ExecuteReader();
+            List<string> result = new List<string>();
+            while (dataReader.Read())
+            {
+                Partition partition = new Partition();             
+
+                string partitionName = dataReader[0].ToString();
+                partition.Name = partitionName;
+                string partitionLowerBoundary = dataReader[1].ToString();
+                string partitionUpperBoundary = dataReader[2].ToString();                
+                MPartitionSource newSource = new MPartitionSource();
+                newSource.Expression = PartitionManager.BuildMQuery(mQuery, partitionLowerBoundary, partitionUpperBoundary);
+                partition.Source = newSource;
+                vhfTable.Partitions.Add(partition);
+                string partitionInfo = $"Created partition -- {partitionName} -- range -- {partitionLowerBoundary}:{partitionUpperBoundary}";
+                result.Add(partitionInfo);
+                vhfTabularModel.Model.SaveChanges();
+
             }
             sqlCnn.Close();
-            
+            try            {                               
+                
+                foreach(Partition p in partitionsToDelete)
+                {
+                    if (p.Name.Contains("delete")){
+                        partitionsToDelete.Remove(p.Name);
+                        log.LogInformation($"{p.Name} - Deleted");
+                        vhfTabularModel.Model.SaveChanges();
+                    }
+                }
+                aasCnn.Disconnect();
+            }
+            catch (Exception e)
+            {
+                log.LogInformation(e.ToString());
+                aasCnn.Disconnect();
+            }
 
-            return new ObjectResult("Succesfully processed - dimension tables.")
+            log.LogInformation($"Succesfully partitioned -  table - {cube.TableName}:\n{String.Join("\n", result)}");
+
+            return new ObjectResult($"Succesfully partitioned -  table {cube.TableName}:\n{String.Join("\n", result)}")
             {
                 StatusCode = (int?)System.Net.HttpStatusCode.OK
             };
         }
+                
 
-        /// <summary>
-        /// Get the partitioning details and adds them to a list of Partitions
-        /// </summary>
-        /// <param name="query"></param>
-        /// <returns></returns>
-       
         public override IActionResult MergeTables(CubeModel data)
         {
             throw new NotImplementedException();
         }
-
-        public override IActionResult ProcessPartition(CubeModel cube)
-        {
-            aasCnn.ConnectAAS();
-            Database vhfTabularModel = aasCnn.Databases.Find(cube.TabularModelName);
-            Table partitionedTable = vhfTabularModel.Model.Tables.Find(cube.TableName);
-            Partition partitionToProcess = partitionedTable.Partitions.Find(cube.Partition);
-            partitionToProcess.RequestRefresh(RefreshType.ClearValues);
-            vhfTabularModel.Model.SaveChanges();
-            log.LogInformation($"Table: {partitionedTable}, Partition: {partitionToProcess.Name} -- " +
-                $"state -- {partitionToProcess.State} -- modTime -- {partitionToProcess.ModifiedTime}");
-            
-            partitionToProcess.RequestRefresh(RefreshType.Full);
-            log.LogInformation($"Table: {partitionedTable}, Partition: {partitionToProcess.Name} -- " +
-                $"state -- {partitionToProcess.State} -- modTime -- {partitionToProcess.ModifiedTime}");
-            vhfTabularModel.Model.SaveChanges();
-            aasCnn.Disconnect();
-            
-            return new ObjectResult($"Succesfully processed partition - {partitionedTable}: {partitionToProcess} .")
-            {
-                StatusCode = (int?)System.Net.HttpStatusCode.OK
-            };
-        }
-        
 
         public string WriteConfigDetails(string query, string sqlConnectionString, string columnName)
         {
             throw new NotImplementedException();
         }
 
-        
+
     }
 }
 

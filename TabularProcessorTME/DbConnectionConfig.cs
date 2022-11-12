@@ -9,12 +9,12 @@ using Microsoft.AnalysisServices.Tabular;
 namespace processAAS.Helpers
 {
     /// <summary>
-    /// TODO: DBConnectionConfigManager
+    /// Creates the connection strings for DWH DB and Azure Analysis Service Server
     /// </summary>
     public class DbConnectionConfig  
     {
         /// <summary>
-        /// Get SQLK conection string
+        /// Get the SQL conection string
         /// </summary>
         /// <param name="connectionInfo"></param>
         /// <param name="integratedAuth"></param>

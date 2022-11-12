@@ -117,15 +117,11 @@ namespace processAAS
             return result;
         }
 
-        public override IActionResult CreatePartitions(CubeModel data)
+        public override IActionResult CreateAllPartitions(CubeModel data)
         {
             throw new NotImplementedException();
         }
-
-        public override IActionResult ProcessPartition(CubeModel data)
-        {
-            throw new NotImplementedException();
-        }
+       
 
         private void WriteConfigDetails(string query, string maxId, ILogger log)
         {           
