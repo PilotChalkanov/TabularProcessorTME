@@ -4,6 +4,9 @@ using System.Text;
 
 namespace processAAS.Models
 {
+    /// <summary>
+    /// Sql DB Model
+    /// </summary>
     public class SqlDBConnectionModel
     {
         public string Server { get; set; }

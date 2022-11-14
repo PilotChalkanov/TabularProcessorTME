@@ -139,7 +139,7 @@ namespace TabularProcessorTME.Processors.Contracts
         public IActionResult ProcessPartition(CubeModel cube)
         {
             aasCnn.ConnectAAS();
-            Database vhfTabularModel = aasCnn.Databases.Find(cube.TabularModelName);
+            Database vhfTabularModel = aasCnn.Databases.FindByName(cube.TabularModelName);
             Table partitionedTable = vhfTabularModel.Model.Tables.Find(cube.TableName);
             Partition partitionToProcess = partitionedTable.Partitions.Find(cube.Partition);
             if (partitionToProcess == null)

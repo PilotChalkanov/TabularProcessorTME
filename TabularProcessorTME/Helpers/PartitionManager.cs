@@ -7,21 +7,18 @@ using System.Text;
 
 namespace TabularProcessorTME.Helpers
 {
-    /// <summary>
-    /// 
-    /// </summary>
+
     public static class PartitionManager
     {
         /// <summary>
-        /// Merge ..
+        /// Merge
         /// </summary>
-        /// <param name="cubeTabular"></param>
-        /// <param name="aasTable"></param>
-        /// <param name="partitionsToMerge"></param>
-        /// <param name="sourcePartition"></param>
-        /// <param name="partitionName"></param>
-        /// <param name="mPartitionQuery"></param>
-        public static void Merge(Database cubeTabular, Table aasTable, List<Partition> partitionsToMerge, Partition sourcePartition,
+        /// <param name="cubeTabular">Tabular model on which we make the modifications</param>        
+        /// <param name="partitionsToMerge">List of partitions to be merged on the source partition</param>
+        /// <param name="sourcePartition">The source partition on which we merge</param>
+        /// <param name="partitionName">Name of the new merged partition</param>
+        /// <param name="mPartitionQuery">The MQuery expression</param>
+        public static void Merge(Database cubeTabular, List<Partition> partitionsToMerge, Partition sourcePartition,
                                         string partitionName, MPartitionSource mPartitionQuery)
         {
             sourcePartition.RequestMerge(partitionsToMerge);
@@ -32,7 +29,7 @@ namespace TabularProcessorTME.Helpers
         }
 
         /// <summary>
-        /// Builds the MQuery expresion
+        /// Builds the MQuery expresion of a partition or table
         /// </summary>
         /// <param name="mQueryExpr"></param>
         /// <param name="lowerLimitValue"></param>
@@ -54,7 +51,7 @@ namespace TabularProcessorTME.Helpers
             {
                 throw new ArgumentException($"'{nameof(upperLimitValue)}' cannot be null.", nameof(upperLimitValue));
             }
-           
+
             string newQuery = mQueryExpr.Replace("{0}", lowerLimitValue)
                                                  .Replace("{1}", upperLimitValue);
             return newQuery;

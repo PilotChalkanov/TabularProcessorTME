@@ -36,6 +36,7 @@ namespace processAAS.Helpers
 
         /// <summary>
         /// Get AAS Connection String
+        /// !!! When the service principle is set - the connection string needs to be updated - see below
         /// </summary>
         /// <param name="connectionInfo"></param>
         /// <returns></returns>
@@ -43,7 +44,7 @@ namespace processAAS.Helpers
         {
             string connectionString = $"Provider=MSOLAP;Data Source=localhost";                
 
-            // !!!! use this connection string with service principal !!!!
+            // !!!! use this connection string when the service principal is created and set !!!!
 
            //string newConnection =  $"Provider=MSOLAP;Data Source={connectionInfo.ServerUrl};User ID={connectionInfo.UserID};" +
            //     $"Password={connectionInfo.Password};Persist Security Info=True; Impersonation Level={connectionInfo.Impersonation};";

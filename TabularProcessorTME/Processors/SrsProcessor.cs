@@ -16,11 +16,22 @@ namespace processAAS
 {
     public class SrsProcessor : Processor
     {
-
+        /// <summary>
+        ///  Handle all the processing, merging and partitioning of SRS Tabular DB. Extends Abstract Class Processor 
+        /// </summary>
+        /// <param name="sqlCnn"></param>
+        /// <param name="aasCnn"></param>
+        /// <param name="log"></param>
         public SrsProcessor(SqlConnection sqlCnn, AnalysisServer aasCnn, ILogger log) : base(sqlCnn, aasCnn, log)
         {
 
         }
+
+        /// <summary>
+        /// Merges the cold partition with the previous day partition. Creates new partition for the current day - daily granularity.
+        /// </summary>
+        /// <param name="cube">CubModel created based on the req body</param>
+        /// <returns></returns>
         public override IActionResult MergeTables(CubeModel cube)
 
         {
@@ -30,10 +41,9 @@ namespace processAAS
                 throw new ArgumentNullException(nameof(cube));
             }
 
-
             // Query - DQ.Partitionconfigurator to get the last max msgID
             string lastMaxMsgIdQuery = StaticTextData.lastMaxMsgId;
-            string msgId = ReadConfigDetails(lastMaxMsgIdQuery,  "currentMaxKey");
+            string msgId = ReadConfigDetails(lastMaxMsgIdQuery, "currentMaxKey");
 
             // Query - DQ.Partitionconfigurator to get the current max msgID
             string currentMaxMsgId = StaticTextData.srsMaxMsgID;
@@ -43,12 +53,12 @@ namespace processAAS
             string templateQuery = StaticTextData.srsTemplateQuery.Replace("{0}", "SRS");
             string mQueryExpr = ReadConfigDetails(templateQuery, "TemplateSourceQuery");
 
-            aasCnn.ConnectAAS();            
+            aasCnn.ConnectAAS();
             log.LogInformation("Connection established successfully.\n");
             log.LogInformation("Server name:\t\t{0}", aasCnn.Name);
 
             Database tabularModel = aasCnn.Databases.FindByName(cube.TabularModelName.ToString());
-            if(tabularModel == null)
+            if (tabularModel == null)
             {
                 log.LogInformation("SRS Tabular model doesn't exist or it is not initialized properly!");
                 throw new ArgumentNullException("SRS Tabular model doesn't exist or it is not initialized properly!");
@@ -67,7 +77,7 @@ namespace processAAS
             string name = "20220317" + "_" + DateTime.Now.ToString("yyyyMMdd");
             MPartitionSource coldPartitionSourceQuery = new MPartitionSource();
             coldPartitionSourceQuery.Expression = PartitionManager.BuildMQuery(mQueryExpr, "0", msgId);
-            PartitionManager.Merge(tabularModel, partitionedSRS, partitionsToMerge, mergeSourcePartition, name, coldPartitionSourceQuery);
+            PartitionManager.Merge(tabularModel, partitionsToMerge, mergeSourcePartition, name, coldPartitionSourceQuery);
 
             /// <summary>
             /// Create new hot partition - daily.
@@ -97,11 +107,16 @@ namespace processAAS
             return new OkResult();
         }
 
-        //read config params from config tables
+        /// <summary>
+        /// Read the config params from the config tables in the sql db
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="columnName"></param>
+        /// <returns></returns>
         string ReadConfigDetails(string query, string columnName)
         {
-            
-            
+
+
             SqlDataReader dataReader;
             // Query - DQ.Partitionconfigurator to get the last max msgID            
             string result = "";
@@ -121,10 +136,15 @@ namespace processAAS
         {
             throw new NotImplementedException();
         }
-       
 
+        /// <summary>
+        /// Updates the config params in the config tables in the sql db
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="columnName"></param>
+        /// <returns></returns>
         private void WriteConfigDetails(string query, string maxId, ILogger log)
-        {           
+        {
             sqlCnn.Open();
             SqlCommand command = new SqlCommand(query, sqlCnn);
             command.Parameters.AddWithValue("@value", maxId);
@@ -140,7 +160,7 @@ namespace processAAS
 
 
         }
-   
+
     }
 }
 

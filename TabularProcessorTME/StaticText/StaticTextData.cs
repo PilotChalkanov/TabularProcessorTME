@@ -3,7 +3,7 @@
 namespace processAAS.StaticText
 {
     /// <summary>
-    /// Al static texts required
+    /// All static texts
     /// </summary>
     public static class StaticTextData
     {
@@ -23,7 +23,8 @@ namespace processAAS.StaticText
         public static string aasImpersonation = Environment.GetEnvironmentVariable("ImpersonationLevel");
         #endregion
 
-        public static string srsTemplateQuery => "SELECT TemplateSourceQuery FROM DQ.PartitionConfigurator  WHERE TableName = {0}";
+        #region SQL queries
+        public static string srsTemplateQuery => "SELECT TemplateSourceQuery FROM DQ.PartitionConfigurator  WHERE TableName = '{0}'";
         public static string srsMaxMsgID => "SELECT MAX(msgID) as msgID FROM SRSe2e.SRS_MIDDLEWARE_MSG_NEW";
         public static string lastMaxMsgId => "SELECT CurrentMaxKey FROM DQ.PartitionConfigurator WHERE TableName = 'SRS'";
         public static string updateMaxId => "UPDATE DQ.PartitionConfigurator SET CurrentMaxKey = @value WHERE TableName = 'SRS';";
@@ -32,5 +33,6 @@ namespace processAAS.StaticText
         public static string vhfPartitionsInfo = "SELECT partitionName, keyLowerBoundary, keyUpperBoundary from dq.VhfPartitionConfig";
 
         public static string vhfTemplateQuery => "SELECT TemplateSourceQuery FROM DQ.PartitionConfigurator  WHERE TableName = {0}";
+        #endregion
     }
 }

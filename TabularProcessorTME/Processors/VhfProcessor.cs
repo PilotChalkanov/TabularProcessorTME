@@ -15,7 +15,7 @@ using TabularProcessorTME.Helpers;
 
 namespace TabularProcessorTME.Processors
 {
-    public class VhfProcessor : Processor   
+    public class VhfProcessor : Processor
     {
         /// <summary>
         /// Handle all the processing, merging and partitioning of VHF Tabular DB. Extends Abstract Class Processor  
@@ -36,7 +36,7 @@ namespace TabularProcessorTME.Processors
         /// <returns></returns>
         public override IActionResult CreateAllPartitions(CubeModel cube)
         {
-            
+            // Get the mQuery template from the config table in the sql db
             string getPartitionInfo = StaticTextData.vhfPartitionsInfo;
             string getTemplateMQuery = StaticTextData.vhfTemplateQuery.Replace("{0}", "'VHF'");
             List<Partition> partitionsToCreate = new List<Partition>();
@@ -47,13 +47,12 @@ namespace TabularProcessorTME.Processors
             string mQuery = null;
             while (dataReader.Read())
             {
-                mQuery = dataReader[0].ToString(); 
+                mQuery = dataReader[0].ToString();
             }
             if (mQuery == null)
             {
-                throw new ArgumentNullException("MQuery cannot be null!");
+                throw new ArgumentNullException("Invalid MQuery!");
             }
-            SqlCommand commandPartitionInfo =  new SqlCommand(getPartitionInfo, sqlCnn);
             dataReader.Close();
 
             //add suffix "_delete" to old partitions
@@ -64,16 +63,17 @@ namespace TabularProcessorTME.Processors
             partitionsToDelete.ToList().ForEach(p => p.Name = p.Name + "_delete");
             vhfTabularModel.Model.SaveChanges();
 
+            // Get the partitiong properties from VhfPArtitionConfig table - name, min, max value of the partition.
+            SqlCommand commandPartitionInfo = new SqlCommand(getPartitionInfo, sqlCnn);
             dataReader = commandPartitionInfo.ExecuteReader();
             List<string> result = new List<string>();
             while (dataReader.Read())
             {
-                Partition partition = new Partition();             
-
+                Partition partition = new Partition();
                 string partitionName = dataReader[0].ToString();
                 partition.Name = partitionName;
                 string partitionLowerBoundary = dataReader[1].ToString();
-                string partitionUpperBoundary = dataReader[2].ToString();                
+                string partitionUpperBoundary = dataReader[2].ToString();
                 MPartitionSource newSource = new MPartitionSource();
                 newSource.Expression = PartitionManager.BuildMQuery(mQuery, partitionLowerBoundary, partitionUpperBoundary);
                 partition.Source = newSource;
@@ -84,11 +84,13 @@ namespace TabularProcessorTME.Processors
 
             }
             sqlCnn.Close();
-            try            {                               
-                
-                foreach(Partition p in partitionsToDelete)
+            try
+            {
+                //deletes the required partitions
+                foreach (Partition p in partitionsToDelete)
                 {
-                    if (p.Name.Contains("delete")){
+                    if (p.Name.Contains("delete"))
+                    {
                         partitionsToDelete.Remove(p.Name);
                         log.LogInformation($"{p.Name} - Deleted");
                         vhfTabularModel.Model.SaveChanges();
@@ -109,7 +111,7 @@ namespace TabularProcessorTME.Processors
                 StatusCode = (int?)System.Net.HttpStatusCode.OK
             };
         }
-                
+
 
         public override IActionResult MergeTables(CubeModel data)
         {
