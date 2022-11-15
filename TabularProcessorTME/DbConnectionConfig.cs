@@ -1,9 +1,10 @@
 ﻿using processAAS.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using TabularProcessorTME.Models;
 using System.Data.SqlClient;
+using TabularProcessorTME.Models;
+using Microsoft.Azure.Services.AppAuthentication;
+using Microsoft.Extensions.Logging;
+using System;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.AnalysisServices.Tabular;
 
 namespace processAAS.Helpers
@@ -11,7 +12,7 @@ namespace processAAS.Helpers
     /// <summary>
     /// Creates the connection strings for DWH DB and Azure Analysis Service Server
     /// </summary>
-    public class DbConnectionConfig  
+    public class DbConnectionConfig
     {
         /// <summary>
         /// Get the SQL conection string
@@ -19,7 +20,7 @@ namespace processAAS.Helpers
         /// <param name="connectionInfo"></param>
         /// <param name="integratedAuth"></param>
         /// <returns></returns>
-        public static SqlConnection  GetSqlConnectionString(SqlDBConnectionModel connectionInfo, bool integratedAuth)
+        public static SqlConnection GetSqlConnectionString(SqlDBConnectionModel connectionInfo, bool integratedAuth)
         {
             string connectionString = $"Persist Security Info=False; " +
                                         $"User ID={connectionInfo.UserName};" +
@@ -42,14 +43,17 @@ namespace processAAS.Helpers
         /// <returns></returns>
         public static AnalysisServer GetAasConnectionString(AasDBConnectionModel connectionInfo)
         {
-            string connectionString = $"Provider=MSOLAP;Data Source=localhost";                
+            var authContext = new AuthenticationContext("https://login.windows.net/" + connectionInfo.tenantId);
 
-            // !!!! use this connection string when the service principal is created and set !!!!
+            ClientCredential cc = new ClientCredential(connectionInfo.clientId, connectionInfo.password);
 
-           //string newConnection =  $"Provider=MSOLAP;Data Source={connectionInfo.ServerUrl};User ID={connectionInfo.UserID};" +
-           //     $"Password={connectionInfo.Password};Persist Security Info=True; Impersonation Level={connectionInfo.Impersonation};";
+            AuthenticationResult token = authContext.AcquireTokenAsync($"https://{connectionInfo.serverUrl}", cc).Result;
 
+            var accessToken = token.AccessToken;
 
+            string connectionString = $"Data Source=asazure://{connectionInfo.serverUrl}/{connectionInfo.serverEndpoint};User ID=;" +
+                 $"Password={accessToken};Persist Security Info=True; Impersonation Level=Impersonate;";
+                        
             return new AnalysisServer(connectionString);
         }
     }

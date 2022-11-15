@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace AutomatedProcessingDataQuality.Models
 {
@@ -18,6 +15,8 @@ namespace AutomatedProcessingDataQuality.Models
         public string[] DimTables { get; set; } = null;
         public string Partition { get; set; } = null;
         public int ProcessType { get; set; } = 0;
+
+        public string PartitionQuery { get; set; }
 
     }
 }

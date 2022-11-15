@@ -2,8 +2,6 @@
 using Microsoft.AnalysisServices.Tabular;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using TabularProcessorTME.Models;
 
 namespace TabularProcessorTME.Helpers
@@ -14,9 +12,9 @@ namespace TabularProcessorTME.Helpers
         /// <summary>
         /// Validates a tabular model
         /// </summary>
-        /// <param name="aasConnection"></param>
-        /// <param name="cube"></param>
-        /// <param name="log"></param>
+        /// <param name="aasConnection">connection to analysis service</param>
+        /// <param name="cube">the cube model</param>
+        /// <param name="log">the logger for azure functions</param>
         /// <returns></returns>
         public static bool Validate(AnalysisServer aasConnection, CubeModel cube, ILogger log)
         {

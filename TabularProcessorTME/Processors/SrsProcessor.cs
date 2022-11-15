@@ -1,16 +1,15 @@
 ﻿using AutomatedProcessingDataQuality.Models;
-using processAAS.StaticText;
 using Microsoft.AnalysisServices.Tabular;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using processAAS.StaticText;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Threading.Tasks;
 using TabularProcessorTME.Helpers;
-using TabularProcessorTME.Processors.Contracts;
 using TabularProcessorTME.Models;
+using TabularProcessorTME.Processors.Contracts;
 
 namespace processAAS
 {
@@ -102,11 +101,7 @@ namespace processAAS
 
         }
 
-        public IActionResult CreatePartitions()
-        {
-            return new OkResult();
-        }
-
+        
         /// <summary>
         /// Read the config params from the config tables in the sql db
         /// </summary>
@@ -115,7 +110,6 @@ namespace processAAS
         /// <returns></returns>
         string ReadConfigDetails(string query, string columnName)
         {
-
 
             SqlDataReader dataReader;
             // Query - DQ.Partitionconfigurator to get the last max msgID            

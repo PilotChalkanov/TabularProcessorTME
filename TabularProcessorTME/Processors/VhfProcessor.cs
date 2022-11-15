@@ -7,11 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
-using TabularProcessorTME.Processors.Contracts;
-using Microsoft.Extensions.Logging;
-using TabularProcessorTME.Models;
 using TabularProcessorTME.Helpers;
+using TabularProcessorTME.Models;
+using TabularProcessorTME.Processors.Contracts;
 
 namespace TabularProcessorTME.Processors
 {

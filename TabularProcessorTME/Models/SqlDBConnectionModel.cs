@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace processAAS.Models
+﻿namespace processAAS.Models
 {
     /// <summary>
     /// Sql DB Model
@@ -20,8 +16,8 @@ namespace processAAS.Models
         /// <summary>
         /// Initializes a new insance of <see cref="SqlDBConnectionModel"/> class.
         /// </summary>
-        /// <param name="server">The server.</param>
-        /// <param name="database"></param>
+        /// <param name="server">The sql server.</param>
+        /// <param name="database">Database</param>
         /// <param name="userName"></param>
         /// <param name="password"></param>
         public SqlDBConnectionModel(string server, string database, string userName, string password)

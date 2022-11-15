@@ -16,9 +16,13 @@ namespace processAAS.StaticText
 
         public static string aasServerUrl = Environment.GetEnvironmentVariable("AnalysisServerURL");
 
-        public static string aasUserID = Environment.GetEnvironmentVariable("AasUserId");
+        public static string aasServerEndpoint = Environment.GetEnvironmentVariable("AnalysisServerEndpoint");
 
-        public static string aasPassword = Environment.GetEnvironmentVariable("AAS_TOKEN");
+        public static string AnalysisAppTenantId = Environment.GetEnvironmentVariable("TenantId");
+
+        public static string ClientId = Environment.GetEnvironmentVariable("ClientId");
+
+        public static string SecretKey = Environment.GetEnvironmentVariable("SecretKey");
 
         public static string aasImpersonation = Environment.GetEnvironmentVariable("ImpersonationLevel");
         #endregion

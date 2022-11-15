@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TabularProcessorTME.Models
+﻿namespace TabularProcessorTME.Models
 {
     class CustomPartitionModel
     {
-        public string _name;       
+        public string _name;
         public string _minKey;
         public string _maxKey;
         public string _mQueryExpr;

@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 using TabularProcessorTME.Models;
 
 namespace TabularProcessorTME.Processors.Contracts
@@ -112,7 +111,7 @@ namespace TabularProcessorTME.Processors.Contracts
                         StatusCode = (int?)System.Net.HttpStatusCode.NotFound
                     };
                 }
-                return new ObjectResult("Succesfully processed tables:")
+                return new ObjectResult($"Succesfully processed tables: {String.Join(", ", dimTables)}")
                 {
                     StatusCode = (int?)System.Net.HttpStatusCode.OK
                 };
@@ -179,6 +178,33 @@ namespace TabularProcessorTME.Processors.Contracts
         public abstract IActionResult MergeTables(CubeModel cube);
         
         public abstract IActionResult CreateAllPartitions(CubeModel cube);
+
+        //TODO
+        public IActionResult CreateSinglePartition(CubeModel cube)
+        {
+            aasCnn.ConnectAAS();
+            Database tabularModel = aasCnn.Databases.FindByName(cube.TabularModelName);
+            Microsoft.AnalysisServices.ServerEdition serverEdition = aasCnn.Edition;
+            Table table = tabularModel.Model.Tables.Find(cube.TableName);
+            Partition newPartition = new Partition();
+            newPartition.Name = cube.Partition;
+            MPartitionSource mQuery = new MPartitionSource();
+            mQuery.Expression = cube.PartitionQuery;           
+            newPartition.Source = mQuery;
+
+            table.Partitions.Add(newPartition);
+            
+            table.Partitions.ToList().ForEach(p => p.Validate());
+            string result = "";
+            
+            aasCnn.Disconnect();
+            return new ObjectResult($"ValidationResult - ")
+            {
+                StatusCode = (int?)System.Net.HttpStatusCode.OK
+            };
+
+
+        }
 
 
 

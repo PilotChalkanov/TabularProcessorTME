@@ -1,9 +1,6 @@
-﻿using AutomatedProcessingDataQuality.Models;
-using Microsoft.AnalysisServices.Tabular;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AnalysisServices.Tabular;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace TabularProcessorTME.Helpers
 {
@@ -29,11 +26,11 @@ namespace TabularProcessorTME.Helpers
         }
 
         /// <summary>
-        /// Builds the MQuery expresion of a partition or table
+        /// builds the MQuery expresion of a partition or table
         /// </summary>
-        /// <param name="mQueryExpr"></param>
-        /// <param name="lowerLimitValue"></param>
-        /// <param name="upperLimitValue"></param>
+        /// <param name="mQueryExpr">The current mQuery template</param>
+        /// <param name="lowerLimitValue">Lower key value used for partitioning</param>
+        /// <param name="upperLimitValue">The upped key value used for partitiong</param>
         /// <returns></returns>
         public static string BuildMQuery(string mQueryExpr, string lowerLimitValue, string upperLimitValue)
 

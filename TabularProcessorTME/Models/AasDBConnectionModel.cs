@@ -1,28 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TabularProcessorTME.Models
+﻿namespace TabularProcessorTME.Models
 {
     /// <summary>
     /// The model of the Analysis service DB
     /// </summary>
     public class AasDBConnectionModel
     {
-        public string ServerUrl { get; set; }        
+        public string serverUrl { get; set; }
 
-        public string UserID { get; set; } = "";
+        public string serverEndpoint { get; set; }
 
-        public string Password { get; set; }
+        public string clientId { get; set; }
 
-        public string Impersonation { get; set; }
-        
-        public AasDBConnectionModel(string serverUrl, string userID, string password, string impersonation)
+        public string tenantId { get; set; } = "";
+
+        public string password { get; set; }
+
+        public string impersonation { get; set; }
+
+        public AasDBConnectionModel(string serverUrl, string serverEndpoint, string clientId, string tenantId, string password, string impersonation)
         {
-            ServerUrl = serverUrl;           
-            UserID = userID;
-            Password = password;
-            Impersonation = impersonation;
+            this.serverUrl = serverUrl;
+            this.serverEndpoint = serverEndpoint;
+            this.clientId = clientId;
+            this.tenantId = tenantId;
+            this.password = password;
+            this.impersonation = impersonation;
         }
 
     }
