@@ -179,26 +179,38 @@ namespace TabularProcessorTME.Processors.Contracts
         
         public abstract IActionResult CreateAllPartitions(CubeModel cube);
 
-        //TODO
+
+        /// <summary>
+        /// Creates single partition with custom expression - send with the body of the req
+        /// </summary>
+        /// <param name="cube">CubeModel as per req body from the api call</param>
+        /// <returns></returns>
         public IActionResult CreateSinglePartition(CubeModel cube)
         {
             aasCnn.ConnectAAS();
             Database tabularModel = aasCnn.Databases.FindByName(cube.TabularModelName);
             Microsoft.AnalysisServices.ServerEdition serverEdition = aasCnn.Edition;
             Table table = tabularModel.Model.Tables.Find(cube.TableName);
+            if(table == null)
+            {
+                log.LogInformation($"Table {cube.TableName} not found or the input name is wrong");
+                return new ObjectResult($"Table {cube.TableName} not found or the input name is wrong")
+                {
+                    StatusCode = (int?)System.Net.HttpStatusCode.BadRequest
+                };
+                throw new ArgumentNullException($"Table {cube.TableName} not found or the input name is wrong");
+            }
             Partition newPartition = new Partition();
             newPartition.Name = cube.Partition;
             MPartitionSource mQuery = new MPartitionSource();
             mQuery.Expression = cube.PartitionQuery;           
             newPartition.Source = mQuery;
-
             table.Partitions.Add(newPartition);
             
-            table.Partitions.ToList().ForEach(p => p.Validate());
-            string result = "";
+            table.Partitions.ToList().ForEach(p => p.Validate());            
             
             aasCnn.Disconnect();
-            return new ObjectResult($"ValidationResult - ")
+            return new ObjectResult($"New partition {newPartition.Name} created - table {table.Name} ")
             {
                 StatusCode = (int?)System.Net.HttpStatusCode.OK
             };

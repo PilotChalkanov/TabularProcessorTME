@@ -1,7 +1,6 @@
 ﻿using processAAS.Models;
 using System.Data.SqlClient;
 using TabularProcessorTME.Models;
-using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Extensions.Logging;
 using System;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;

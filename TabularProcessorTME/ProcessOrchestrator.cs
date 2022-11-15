@@ -23,13 +23,16 @@ namespace processAAS
     /// </summary>
     public class ProcessOrchestrator
     {
-        private static SqlDBConnectionModel connectionInfo = new SqlDBConnectionModel(StaticTextData.sqlServerURL, StaticTextData.sqlDb, StaticTextData.sqlDbUserName, StaticTextData.sqlDbPassword);
-        private static AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, 
-                                                                                        StaticTextData.aasServerEndpoint,
-                                                                                        StaticTextData.ClientId, 
-                                                                                        StaticTextData.AnalysisAppTenantId, 
-                                                                                        StaticTextData.SecretKey, 
-                                                                                        StaticTextData.aasImpersonation);
+        private static readonly SqlDBConnectionModel connectionInfo = new SqlDBConnectionModel(StaticTextData.sqlServerURL, 
+                                                                                               StaticTextData.sqlDb, 
+                                                                                               StaticTextData.sqlDbUserName, 
+                                                                                               StaticTextData.sqlDbPassword);
+        private static readonly AasDBConnectionModel aasConnectionInfo = new AasDBConnectionModel(StaticTextData.aasServerUrl, 
+                                                                                                StaticTextData.aasServerEndpoint,
+                                                                                                StaticTextData.ClientId, 
+                                                                                                StaticTextData.AnalysisAppTenantId, 
+                                                                                                StaticTextData.SecretKey, 
+                                                                                                StaticTextData.aasImpersonation);
         /// <summary>
         /// vhf/dimensions endpoint - executes processing of VHF dim tables
         /// </summary>
@@ -341,6 +344,12 @@ namespace processAAS
 
         }
 
+        /// <summary>
+        /// Creates single custom partition - the query expression is sent via req body as string
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="log"></param>
+        /// <returns></returns>
         [FunctionName("CreateSinglePartition")]
         public static async Task<IActionResult> CreatePartition(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "custom_partition")] HttpRequest req,
