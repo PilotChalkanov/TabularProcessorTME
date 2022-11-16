@@ -16,4 +16,58 @@ db - DQ.VhfPartitionConfig.
 
 It can be run on the localhost for test purposes:
 http://localhost:7071/api
-Or inside azure data factory
+Or inside azure data factory pipeline as Azure Function
+Or as a web activity
+https://tabularprocessortme.azurewebsites.net/api/
+
+The endpoint https://tabularprocessortme.azurewebsites.net/api/ will be referred as /api for the rest of the documentation.
+
+
+## Process Dimension Tables - VHF, SRS
+## /api/vhf/dimensions
+## /api/srs/dimensions
+req body
+{    
+    "TabularModelName": "DataQuality_VHF",
+    "TableName": "VHF",
+    "DimTables": ["Channel mapping", "A2D Dealers", "EventDate"],   
+    "Partition":"",
+    "ProcessType" :"1"
+
+}
+
+Processes all the tables in the "DimTables" as an array of strings. If the names are correct it will process the corresponding tables, otherwise it will throw an error. Here "Partition" and "ProcessType" can be omitted from the req body. The logic is the same for VHF and SRS.
+
+
+Creates all the partitions - VHF
+# /api/vhf/partitions/create
+
+req body
+{    
+    "TabularModelName": "DataQuality_VHF",
+    "TableName": "VHF",  
+    "ProcessType" :"1"
+}
+
+It is meant to be run only ones, when we need to partition the VHF table.
+Deletes all the partitions inside VHF table and creates new ones according to the configuration stipulated in the DQ.VhfPartitionConfig table, using the mQuery from DQ.PartitionConfigurator for TableName VHF.
+
+
+## Process Single Partition - VHF, SRS
+
+#/api/vhf/partitions
+#/api/srs/single_partition
+
+req body 
+
+{    
+    "TabularModelName": "DataQuality_VHF",
+    "TableName": "VHF",     
+    "Partition":"VHF40",
+    "ProcessType" :"1"
+}
+
+Processes a single partition - sent in the body as string.
+
+
+##
