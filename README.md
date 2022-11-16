@@ -17,15 +17,16 @@ db - DQ.VhfPartitionConfig.
 It can be run on the localhost for test purposes:
 http://localhost:7071/api
 Or inside azure data factory pipeline as Azure Function
-Or as a web activity
-https://tabularprocessortme.azurewebsites.net/api/
+
+Also as a web activity with the proper endpoint address.
+https://tabularprocessortme.azurewebsites.net/api/ + functionKey
 
 The endpoint https://tabularprocessortme.azurewebsites.net/api/ will be referred as /api for the rest of the documentation.
 
 
 ## Process Dimension Tables - VHF, SRS
-## /api/vhf/dimensions
-## /api/srs/dimensions
+# /api/vhf/dimensions
+# /api/srs/dimensions
 req body
 {    
     "TabularModelName": "DataQuality_VHF",
@@ -70,4 +71,32 @@ req body
 Processes a single partition - sent in the body as string.
 
 
-##
+## Merge and process SRS
+# /api/srs/merge_process
+
+{    
+    "TabularModelName": "DataQualitySRS_PRD",
+    "TableName": "SRS",
+    "DimTables": [],   
+    "Partition":"",
+    "ProcessType" :"1"
+
+}
+
+Merges the current hot partition with the cold historical partition. Then creates the new hot partition with the current date. It should run daily,
+ensuring daily granularity of the report.
+
+
+## Create custom partition
+# api/custom_partition
+
+{    
+    "TabularModelName": "DataQuality_VHF",
+    "TableName": "VHF",    
+    "Partition":"fff",
+    "PartitionQuery" :"let\r\n    Source = #\"SQL\/kpireportingsqldev database windows net,1433;PanEToshiko\",\r\n    SRSe2e_SRS_MIDDLEWARE_MSG_NEW = Source{[Schema=\"SRSe2e\",Item=\"SRS_MIDDLEWARE_MSG_NEW\"]}[Data],\r\n    #\"Renamed Columns\" = Table.RenameColumns(SRSe2e_SRS_MIDDLEWARE_MSG_NEW,{{\"eventId\", \"EVENT ID\"}, {\"dueDate\", \"DUE DATE\"}, {\"processedAt\", \"PROCESSED AT\"}}),\r\n    #\"Added Custom\" = Table.AddColumn(#\"Renamed Columns\", \"PREFERRED DEALER CODE?\", each if [preferredDealerId] = null then \"no\" else \"yes\"),\r\n    #\"Renamed Columns1\" = Table.RenameColumns(#\"Added Custom\",{{\"deliveryCountry\", \"DELIVERY COUNTRY UIO\"}, {\"licensePlateCountry\", \"LICENSE PLATE COUNTRY UIO\"}, {\"eventSource\", \"EVENT SOURCE\"}, {\"brand\", \"BRAND\"}, {\"errorCase\", \"ERROR CASE\"}, {\"nmscCode\", \"NMSC\"}}),\r\n    #\"Removed Columns2\" = Table.RemoveColumns(#\"Renamed Columns1\",{\"preferredDealerId\"}),\r\n    #\"Added Custom1\" = Table.AddColumn(#\"Removed Columns2\", \"DUE DATE SENT\", each if [dueDatePublished] = 1 then \"yes\" else \"no\"),\r\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Added Custom1\",{{\"DUE DATE\", type datetime}}),\r\n    #\"Changed Type1\" = Table.TransformColumnTypes(#\"Changed Type\",{{\"DUE DATE\", type date}}),\r\n    #\"Changed Type2\" = Table.TransformColumnTypes(#\"Changed Type1\",{{\"PROCESSED AT\", type datetime}}),\r\n    #\"Changed Type3\" = Table.TransformColumnTypes(#\"Changed Type2\",{{\"PROCESSED AT\", type date}}),\r\n    #\"Sorted Rows\" = Table.Sort(#\"Changed Type3\",{{\"msgID\", Order.Ascending}}),\r\n    #\"Changed Type4\" = Table.TransformColumnTypes(#\"Sorted Rows\",{{\"eventDealerCodeIsBad\", type text}}),\r\n    #\"Replaced Value\" = Table.ReplaceValue(#\"Changed Type4\",\"0\",\"No\",Replacer.ReplaceText,{\"eventDealerCodeIsBad\"}),\r\n    #\"Replaced Value1\" = Table.ReplaceValue(#\"Replaced Value\",\"1\",\"Yes\",Replacer.ReplaceText,{\"eventDealerCodeIsBad\"}),\r\n    #\"Filtered Rows\" = Table.SelectRows(#\"Replaced Value1\", each [msgID] > {0} and [msgID] <= {1})\r\nin\r\n    #\"Filtered Rows\""
+
+}
+
+Creates a partition with the mQuery send in the req. Valid for all tabular models.
+
