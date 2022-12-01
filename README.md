@@ -25,8 +25,8 @@ The endpoint https://tabularprocessortme.azurewebsites.net/api/ will be referred
 
 
 ## Process Dimension Tables - VHF, SRS
-### /api/vhf/dimensions
-### /api/srs/dimensions
+###/api/vhf/dimensions
+###/api/srs/dimensions
 req body
 {    
     "TabularModelName": "DataQuality_VHF",
