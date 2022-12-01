@@ -25,8 +25,8 @@ The endpoint https://tabularprocessortme.azurewebsites.net/api/ will be referred
 
 
 ## Process Dimension Tables - VHF, SRS
-# /api/vhf/dimensions
-# /api/srs/dimensions
+### /api/vhf/dimensions
+### /api/srs/dimensions
 req body
 {    
     "TabularModelName": "DataQuality_VHF",
@@ -41,7 +41,7 @@ Processes all the tables in the "DimTables" as an array of strings. If the names
 
 
 ## Creates all the partitions - VHF
-# /api/vhf/partitions/create
+### /api/vhf/partitions/create
 
 req body
 {    
@@ -56,8 +56,8 @@ Deletes all the partitions inside VHF table and creates new ones according to th
 
 ## Process Single Partition - VHF, SRS
 
-#/api/vhf/partitions
-#/api/srs/single_partition
+###/api/vhf/partitions
+###/api/srs/single_partition
 
 req body 
 
@@ -72,7 +72,7 @@ Processes a single partition - sent in the body as string.
 
 
 ## Merge and process SRS
-# /api/srs/merge_process
+### /api/srs/merge_process
 
 {    
     "TabularModelName": "DataQualitySRS_PRD",
@@ -88,7 +88,7 @@ ensuring daily granularity of the report.
 
 
 ## Create custom partition
-# api/custom_partition
+### api/custom_partition
 
 {    
     "TabularModelName": "DataQuality_VHF",
