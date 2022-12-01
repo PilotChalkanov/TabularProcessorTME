@@ -40,7 +40,7 @@ req body
 Processes all the tables in the "DimTables" as an array of strings. If the names are correct it will process the corresponding tables, otherwise it will throw an error. Here "Partition" and "ProcessType" can be omitted from the req body. The logic is the same for VHF and SRS.
 
 
-Creates all the partitions - VHF
+## Creates all the partitions - VHF
 # /api/vhf/partitions/create
 
 req body
